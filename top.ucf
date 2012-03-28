@@ -1,0 +1,27 @@
+NET  "sys_clk_in"                            IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE; # was 18;
+NET  "rst_in"                               	IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE; # was 18;
+NET  "ftdi_*"                                IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE_PULLUP;
+NET  "sc_dout"                    				IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE;
+NET  "sc_clkout"                    		  	IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE_PULLUP;  
+#NET  "srstb"                  	 				IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE;
+#NET  "urstb"                   					IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE;
+
+NET  "sys_clk_in"                            LOC = "R9"; # r0.02 was"T9"; moved to "P" side, bank 2
+NET  "rst_in"                                LOC = "R13" ;     #r0.02 was R14, moved free up SPI, bank 2 
+NET  "ftdi_d[0]"                             LOC = "T4" | SLEW = FAST | DRIVE = 12;     #bank 2 
+NET  "ftdi_d[1]"                             LOC = "R5" | SLEW = FAST | DRIVE = 12;     #bank 2 
+NET  "ftdi_d[2]"                             LOC = "T5" | SLEW = FAST | DRIVE = 12;     #bank 2 
+NET  "ftdi_d[3]"                             LOC = "T6" | SLEW = FAST | DRIVE = 12;     #bank 2 
+NET  "ftdi_d[4]"                             LOC = "N7" | SLEW = FAST | DRIVE = 12;     #bank 2 
+NET  "ftdi_d[5]"                             LOC = "P6" | SLEW = FAST | DRIVE = 12;     #bank 2 
+NET  "ftdi_d[6]"                             LOC = "P7" | SLEW = FAST | DRIVE = 12;     #bank 2 
+NET  "ftdi_d[7]"                             LOC = "N8" | SLEW = FAST | DRIVE = 12;     #bank 2 
+NET  "ftdi_rd"                               LOC = "P8" | SLEW = FAST | DRIVE = 8;     #bank 2 
+NET  "ftdi_rxf"                              LOC = "P9";     #bank 2 
+NET  "ftdi_txe"                              LOC = "N9";     #bank 2 
+NET  "ftdi_wr"                               LOC = "T8" | SLEW = FAST | DRIVE = 8;     #bank 2 
+NET  "sc_dout"                    				LOC = "D13" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "sc_clkout"                      			LOC = "C13" | SLEW = SLOW | DRIVE = 8;     #bank 0
+#NET  "sc_clkout"                             LOC = "T10" | SLEW = SLOW | DRIVE = 12;     #LED test for sc clock output
+#NET  "srstb"                  					LOC = "D11" | SLEW = SLOW | DRIVE = 8;     #bank 0
+#NET  "urstb"                   					LOC = "C12" | SLEW = SLOW | DRIVE = 8;     #bank 0
