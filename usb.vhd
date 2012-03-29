@@ -54,15 +54,24 @@ architecture Behavioral of usb is
 	signal sc_load_i, sc_capture, sc_capture_i : std_logic;
 	signal sc_seq_i : std_logic_vector(16 downto 0);
 	signal capture_i, capture : std_logic;
+	signal byte_count : std_logic_vector(3 downto 0);
+	signal sample1,sample2,sample3,sample4 : std_logic_vector(11 downto 0);
+	signal prefix : std_logic_vector(15 downto 0);
+	signal sample_en : std_logic;
+	signal sample_timer : std_logic_vector(22 downto 0);
 	
-	signal samplenum : std_logic_vector(15 downto 0);
-	
-	type state_type is (idle,avail,rbyte,cbyte1,cbyte2,style,pbyte,sbyte,sampledone,samplecheck,
+	type state_type is (idle,avail,rbyte,cbyte1,cbyte2,style,pbyte,sbyte,sample,sample_byte,sample_wait,
 								sc_check,sc_wait,sc_send);
 	
 	signal state, next_state : state_type;
 
 begin
+	--constant samples before reading from adc's
+	sample1 <= X"111";
+	sample2 <= X"222";
+	sample3 <= X"333";
+	sample4 <= X"444";
+	prefix <= (others => '0');
 
 	SYNC_PROC: process (clk_in)
    begin
@@ -134,6 +143,27 @@ begin
 				capture_i		<= '0';
 				sc_load_i		<= '0';
 				sc_capture_i	<= '0';
+			when sample => 	-- SAMPLE state: Sample data
+				RD_i 				<= '1';
+            WR_i	 			<= '1';
+				send_i			<= '0';
+				capture_i		<= '0';
+				sc_load_i		<= '0';
+				sc_capture_i	<= '0';
+			when sample_byte => 	-- SAMPLE_BYTE state: Load output value from sample data
+				RD_i 				<= '1';
+            WR_i	 			<= '1';
+				send_i			<= '0';
+				capture_i		<= '0';
+				sc_load_i		<= '0';
+				sc_capture_i	<= '0';
+			when sample_wait => 	-- SAMPLE_WAIT state: Wait for sample data or accept cmd
+				RD_i 				<= '1';
+            WR_i	 			<= '1';
+				send_i			<= '0';
+				capture_i		<= '0';
+				sc_load_i		<= '0';
+				sc_capture_i	<= '0';
 			when pbyte => 	-- PBYTE state: Present byte, wait for ftdi_txe
 				RD_i 				<= '1';
             WR_i	 			<= '1';
@@ -148,20 +178,6 @@ begin
 				capture_i		<= '0';
 				sc_load_i		<= '0';
 				sc_capture_i	<= '0';	
-			when sampledone => 	-- SAMPLEDONE state: Done with sample
-				RD_i				<= '1';
-				WR_i				<= '1';
-				send_i			<= '0';
-				sc_load_i		<= '0';
-				sc_capture_i	<= '0';
-				capture_i		<= '0';
-			when samplecheck => 	-- SAMPLECHECK state: Check for more samples
-				RD_i				<= '1';
-				WR_i				<= '1';
-				send_i			<= '0';
-				capture_i		<= '0';
-				sc_load_i		<= '0';
-				sc_capture_i	<= '0';
 			when sc_check => 	-- SC_CHECK state: Check if done with sc payload
 				RD_i				<= '1';
 				WR_i				<= '1';
@@ -193,7 +209,7 @@ begin
 		end case;
 	end process;
 	
-	NEXT_STATE_DECODE: process (state,ftdi_rxf,ftdi_txe,command,samplenum,sc_chunk)
+	NEXT_STATE_DECODE: process (state,ftdi_rxf,ftdi_txe,command,sc_chunk,sample_en)
    begin
       --declare default state for next_state to avoid latches
       next_state <= state;  --default is to stay in current state
@@ -231,12 +247,32 @@ begin
 			when style =>
 				case (command(7 downto 4)) is
 					when X"1" => 
-						next_state <= pbyte; -- new cmd, send byte
+						next_state <= sample; -- start cmd, sample data
+					when X"2" =>
+						next_state <= idle;	-- stop cmd
 					when X"4" => 
 						next_state <= sc_check; -- new cmd, send byte
 					when others => 
 						next_state <= idle;
-				end case;
+				end case;	
+			---------------------------------------------------------------------
+			-- SAMPLE: Sample data
+			when sample =>
+				next_state <= sample_byte;
+			---------------------------------------------------------------------
+			-- SAMPLE_BYTE: Capture sample data
+			when sample_byte =>
+				next_state <= pbyte;
+			---------------------------------------------------------------------
+			-- SAMPLE_WAIT: Wait to sample data or accept new cmd
+			when sample_wait =>
+				if ftdi_rxf = '0' then -- data ready to be read from USB
+				   next_state <= avail;
+				elsif sample_en = '1' then
+					next_state <= sample;
+				else
+					next_state <= sample_wait;
+				end if;
 			---------------------------------------------------------------------
 			-- PBYTE: Present Byte, wait for ftdi_txe assertion
 			when pbyte =>
@@ -248,18 +284,10 @@ begin
 			---------------------------------------------------------------------
 			-- SBYTE: Send Byte, wait timer done
 			when sbyte =>
-				next_state <= sampledone;
-			---------------------------------------------------------------------
-			-- SAMPLEDONE: Sample done
-			when sampledone =>
-            next_state <= samplecheck;
-			---------------------------------------------------------------------
-			-- SAMPLECHECK: Check if done with samples
-			when samplecheck =>
-            if samplenum = X"0000" then
-					next_state <= idle; -- done
+				if(byte_count = X"7") then
+					next_state <= sample_wait;
 				else
-				   next_state <= pbyte;
+					next_state <= sample_byte;
 				end if;
 			---------------------------------------------------------------------
 			-- SC_CHECK: Check if done with sc payload
@@ -286,6 +314,67 @@ begin
 		end case;
 	end process;
 	
+	SYNC_SAMPLES: process (clk_in)
+	begin
+      if (rising_edge(clk_in)) then
+         if (rst_in = '1') then
+				byte_count <= X"0";
+				ftdi_dout <= X"00";
+			else
+				if(state = sample_byte) then
+					case (byte_count) is
+						when X"0" =>
+							ftdi_dout <= prefix(15 downto 8);
+						when X"1" =>
+							ftdi_dout <= prefix(7 downto 0);
+						when X"2" =>
+							ftdi_dout <= sample1(11 downto 4);
+						when X"3" =>
+							ftdi_dout(7 downto 4) <= sample1(3 downto 0);
+							ftdi_dout(3 downto 0) <= sample2(11 downto 8);
+						when X"4" =>
+							ftdi_dout <= sample2(7 downto 0);
+						when X"5" =>
+							ftdi_dout <= sample3(11 downto 4);
+						when X"6" =>
+							ftdi_dout(7 downto 4) <= sample3(3 downto 0);
+							ftdi_dout(3 downto 0) <= sample4(11 downto 8);
+						when X"7" =>
+							ftdi_dout <= sample4(7 downto 0);
+						when others =>
+							ftdi_dout <= X"00";
+					end case;
+				elsif(state = sbyte) then
+					byte_count <= byte_count + 1;
+				elsif(state = sample_wait) then
+					byte_count <= X"0";
+				end if;
+			end if;
+		end if;
+	end process;
+	
+	SAMPLE_TIMING: process (clk_in)
+   begin
+      if (rising_edge(clk_in)) then
+         if (rst_in = '1') then
+				sample_timer  <= (others => '0');
+				sample_en <= '0';
+			else
+				if(state = sample_wait) then
+					sample_timer <= sample_timer + 1;
+					if (sample_timer(22) = '1') then
+						sample_en <= '1';
+					else
+						sample_en <= '0';
+					end if;
+				else
+					sample_timer <= (others => '0');
+					sample_en <= '0';
+				end if;
+			end if;
+		end if;
+	end process;
+	
 	SYNC_CAPTURE: process (clk_in)
    begin
       if (rising_edge(clk_in)) then
@@ -297,17 +386,6 @@ begin
 				else
 					command <= command;
 				end if;
-			end if;
-		end if;
-	end process;
-	
-	SYNC_DATAOUT: process (clk_in)
-   begin
-      if (rising_edge(clk_in)) then
-         if (rst_in = '1') then
-				ftdi_dout  <= X"00";
-			else
-				ftdi_dout <= X"FF";--samplenum(7 downto 0);
 			end if;
 		end if;
 	end process;
@@ -350,55 +428,6 @@ begin
 					sc_chunk <= sc_chunk;
 				end if;
 			end if;
-		end if;
-	end process;
-	
-	SAMPLECOUNTER : process (clk_in)
-	begin
-		if (rising_edge(clk_in)) then
-			case (state) is
-				when style =>
-					case (command(3 downto 0)) is
-						when X"0" =>
-							samplenum <= X"0001";
-						when X"1" =>
-							samplenum <= X"0002";
-						when X"2" =>
-							samplenum <= X"0004";
-						when X"3" =>
-							samplenum <= X"0008";
-						when X"4" =>
-							samplenum <= X"0010";
-						when X"5" =>
-							samplenum <= X"0020";
-						when X"6" =>
-							samplenum <= X"0040";
-						when X"7" =>
-							samplenum <= X"0080";
-						when X"8" =>
-							samplenum <= X"0100";
-						when X"9" =>
-							samplenum <= X"0200";
-						when X"A" =>
-							samplenum <= X"0400";
-						when X"B" =>
-							samplenum <= X"0800";
-						when X"C" =>
-							samplenum <= X"1000";
-						when X"D" =>
-							samplenum <= X"2000";
-						when X"E" =>
-							samplenum <= X"4000";
-						when X"F" =>
-							samplenum <= X"8000";
-						when others =>
-							samplenum <= X"0001";
-					end case;
-				when sampledone =>
-					samplenum <= samplenum - X"0001";
-				when others =>
-					samplenum <= samplenum;
-			end case;
 		end if;
 	end process;
 					
