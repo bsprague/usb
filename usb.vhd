@@ -55,8 +55,8 @@ architecture Behavioral of usb is
 	signal sc_seq_i : std_logic_vector(16 downto 0);
 	signal capture_i, capture : std_logic;
 	signal byte_count : std_logic_vector(3 downto 0);
-	signal sample1,sample2,sample3,sample4 : std_logic_vector(11 downto 0);
-	signal prefix : std_logic_vector(15 downto 0);
+	signal sample1,sample2,sample3,sample4,sample5,sample6,sample7 : std_logic_vector(11 downto 0);
+	signal prefix : std_logic_vector(11 downto 0);
 	signal sample_en : std_logic;
 	signal sample_timer : std_logic_vector(22 downto 0);
 	
@@ -71,6 +71,9 @@ begin
 	sample2 <= X"222";
 	sample3 <= X"333";
 	sample4 <= X"444";
+	sample5 <= X"555";
+	sample6 <= X"666";
+	sample7 <= X"777";
 	prefix <= (others => '0');
 
 	SYNC_PROC: process (clk_in)
@@ -209,7 +212,7 @@ begin
 		end case;
 	end process;
 	
-	NEXT_STATE_DECODE: process (state,ftdi_rxf,ftdi_txe,command,sc_chunk,sample_en)
+	NEXT_STATE_DECODE: process (state,ftdi_rxf,ftdi_txe,command,sc_chunk,sample_en,byte_count)
    begin
       --declare default state for next_state to avoid latches
       next_state <= state;  --default is to stay in current state
@@ -284,7 +287,7 @@ begin
 			---------------------------------------------------------------------
 			-- SBYTE: Send Byte, wait timer done
 			when sbyte =>
-				if(byte_count = X"7") then
+				if(byte_count = X"B") then
 					next_state <= sample_wait;
 				else
 					next_state <= sample_byte;
@@ -324,23 +327,33 @@ begin
 				if(state = sample_byte) then
 					case (byte_count) is
 						when X"0" =>
-							ftdi_dout <= prefix(15 downto 8);
+							ftdi_dout <= prefix(11 downto 4);
 						when X"1" =>
-							ftdi_dout <= prefix(7 downto 0);
+							ftdi_dout(7 downto 4) <= prefix(3 downto 0);
+							ftdi_dout(3 downto 0) <= sample1(11 downto 8);
 						when X"2" =>
-							ftdi_dout <= sample1(11 downto 4);
+							ftdi_dout <= sample1(7 downto 0);
 						when X"3" =>
-							ftdi_dout(7 downto 4) <= sample1(3 downto 0);
-							ftdi_dout(3 downto 0) <= sample2(11 downto 8);
+							ftdi_dout <= sample2(11 downto 4);
 						when X"4" =>
-							ftdi_dout <= sample2(7 downto 0);
+							ftdi_dout(7 downto 4) <= sample2(3 downto 0);
+							ftdi_dout(3 downto 0) <= sample3(11 downto 8);
 						when X"5" =>
-							ftdi_dout <= sample3(11 downto 4);
+							ftdi_dout <= sample3(7 downto 0);
 						when X"6" =>
-							ftdi_dout(7 downto 4) <= sample3(3 downto 0);
-							ftdi_dout(3 downto 0) <= sample4(11 downto 8);
+							ftdi_dout <= sample4(11 downto 4);
 						when X"7" =>
-							ftdi_dout <= sample4(7 downto 0);
+							ftdi_dout(7 downto 4) <= sample4(3 downto 0);
+							ftdi_dout(3 downto 0) <= sample5(11 downto 8);
+						when X"8" =>
+							ftdi_dout <= sample5(7 downto 0);
+						when X"9" =>
+							ftdi_dout <= sample6(11 downto 4);
+						when X"A" =>
+							ftdi_dout(7 downto 4) <= sample6(3 downto 0);
+							ftdi_dout(3 downto 0) <= sample7(11 downto 8);
+						when X"B" =>
+							ftdi_dout <= sample7(7 downto 0);
 						when others =>
 							ftdi_dout <= X"00";
 					end case;
