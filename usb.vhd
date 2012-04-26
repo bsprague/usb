@@ -201,7 +201,7 @@ begin
 				capture_i		<= '0';
 				sc_load_i		<= '0';
 				sc_capture_i	<= '0';
-				adc_go_i			<= '1'; 
+				adc_go_i			<= '0'; 
 				c1rstb_i			<= '0';
 				c2rstb_i			<= '0';
 			when sample_start => 	-- SAMPLE state: Sample data

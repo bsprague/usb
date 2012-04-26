@@ -67,7 +67,7 @@ architecture Behavioral of adc is
 	signal channel_count : std_logic_vector(2 downto 0);
 	
 	-- ADC register configurations
-	constant setupregister : std_logic_vector(7 downto 0) := "01000100";
+	constant setupregister : std_logic_vector(7 downto 0) := "01001000";
 	constant cnvregister : std_logic_vector(7 downto 0) := "10110000";
 	
 begin
@@ -105,21 +105,21 @@ begin
 				cnvst_n_i 	<= '1';
 				sclk_i 		<= not clk_in;
 				din_i 		<= setupregister(7 - bit_count); -- MSB first
-				running_i	<= '1';
+				running_i	<= '0';
 				done_i		<= '0';	
 			when regpause =>
 				cs_n_i 		<= '1';
 				cnvst_n_i 	<= '1';
 				sclk_i 		<= '0';
 				din_i 		<= '0';
-				running_i	<= '1';
+				running_i	<= '0';
 				done_i		<= '0';
 			when cnvreg =>
 				cs_n_i 		<= '0';
 				cnvst_n_i 	<= '1';
 				sclk_i 		<= not clk_in;
 				din_i 		<= cnvregister(7 - bit_count);	-- MSB first;
-				running_i	<= '1';
+				running_i	<= '0';
 				done_i		<= '0';
 			when idle =>
 				cs_n_i 		<= '1';
@@ -170,7 +170,7 @@ begin
 	begin
 		case(state) is
 			when init => 
-				next_state <= idle;
+				next_state <= setupreg;
 			when setupreg =>
 				if (bit_count = 7) then
 					next_state <= regpause;
@@ -181,13 +181,13 @@ begin
 				next_state <= cnvreg;
 			when cnvreg =>
 				if (bit_count = 7) then
-					next_state <= scanrequest;
+					next_state <= idle;
 				else 
 					next_state <= cnvreg;
 				end if;
 			when idle =>
 				if (go = '1') then
-					next_state <= setupreg;
+					next_state <= scanrequest;
 				else
 					next_state <= idle;
 				end if;
