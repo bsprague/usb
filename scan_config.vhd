@@ -30,7 +30,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 entity scan_config is
 	generic(
 			--Change width to change output clock frequency
-			--Input clock = 66 MHz?
+			--Input clock = 66 MHz
 		WIDTH : integer range 1 to 64 := 18
 		);
 
@@ -41,7 +41,10 @@ entity scan_config is
       shift_out : out  STD_LOGIC;
 		clk_out : out STD_LOGIC;
 		urstb : out STD_LOGIC := '1';
-		srstb : out STD_LOGIC := '1');
+		srstb : out STD_LOGIC;
+		c1rstb : out STD_LOGIC := '1';
+		c2rstb : out STD_LOGIC := '1'
+		);
 end scan_config;
 	
 architecture Behavioral of scan_config is
@@ -50,9 +53,12 @@ architecture Behavioral of scan_config is
 	signal counter : std_logic_vector(WIDTH - 1 downto 0);
 	signal shift_clk : std_logic;
 	signal shift_cnt : std_logic_vector(4 downto 0);
+	signal srstb_i : std_logic := '1';
 	
 begin
 
+	srstb <= srstb_i;
+	
 	process(clk_in,rst)
 	begin
 		if rst = '1' then
@@ -69,30 +75,36 @@ begin
 				shift_cnt <= "00000";
 				shift_clk <= '0';
 				urstb <= '0';
-				srstb <= '0';
+				srstb_i <= '0';
+				c1rstb <= '0';
+				c2rstb <= '0';
 				
 		elsif rising_edge(counter(WIDTH - 1)) then
 		
-				srstb <= '1';
-			
-				-- set up our shift_clk
-				if shift_cnt >= "10001" then
-					shift_clk <= '0';
-				else
-					shift_clk <= not shift_clk;
-				end if;
-				
-				-- when the clk is low, set up our new data
-				if shift_clk = '1' then
-					sequence(16 downto 1) <= sequence(15 downto 0);
-					sequence(0) <= '0';
-					
-					if shift_cnt < "10011" then
-						shift_cnt <= shift_cnt + 1;
-					else
+				if(srstb_i = '1') then
+	
+					-- set up our shift_clk
+					if shift_cnt >= "10001" then
+						shift_clk <= '0';
 						urstb <= '1';
+						c1rstb <= '1';
+						c2rstb <= '1';
+					else
+						shift_clk <= not shift_clk;
 					end if;
+				
+					-- when the clk is low, set up our new data
+					if shift_clk = '1' then
+						sequence(16 downto 1) <= sequence(15 downto 0);
+						sequence(0) <= '0';
 					
+						if shift_cnt < "10011" then
+							shift_cnt <= shift_cnt + 1;
+						end if;
+					
+					end if;
+				else
+					srstb_i <= '1';
 				end if;
 		end if;
 	end process;

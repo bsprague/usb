@@ -3,8 +3,10 @@ NET  "rst_in"                               	IOSTANDARD = LVCMOS33 | SUSPEND = 3
 NET  "ftdi_*"                                IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE_PULLUP;
 NET  "sc_dout"                    				IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE;
 NET  "sc_clkout"                    		  	IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE_PULLUP;  
-#NET  "srstb"                  	 				IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE;
-#NET  "urstb"                   					IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE;
+NET  "adc_*"                    					IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE_PULLUP;
+NET  "ls_*"                    					IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE_PULLUP;
+NET  "srstb"                  	 				IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE;
+NET  "urstb"                   					IOSTANDARD = LVCMOS33 | SUSPEND = 3STATE;
 
 NET  "sys_clk_in"                            LOC = "R9"; # r0.02 was"T9"; moved to "P" side, bank 2
 NET  "rst_in"                                LOC = "R13" ;     #r0.02 was R14, moved free up SPI, bank 2 
@@ -20,8 +22,16 @@ NET  "ftdi_rd"                               LOC = "P8" | SLEW = FAST | DRIVE = 
 NET  "ftdi_rxf"                              LOC = "P9";     #bank 2 
 NET  "ftdi_txe"                              LOC = "N9";     #bank 2 
 NET  "ftdi_wr"                               LOC = "T8" | SLEW = FAST | DRIVE = 8;     #bank 2 
-NET  "sc_dout"                    				LOC = "D13" | SLEW = SLOW | DRIVE = 8;     #bank 0
-NET  "sc_clkout"                      			LOC = "C13" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "sc_dout"                    				LOC = "C10" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "sc_clkout"                      			LOC = "C12" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "adc_cnvst"                      			LOC = "J3" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "adc_cs"                      				LOC = "K1" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "adc_sclk"                      			LOC = "K3" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "adc_din"                      			LOC = "P1" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "adc_dout"                      			LOC = "N2" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "adc_eoc"                      			LOC = "T9" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "ls_oe"	                      			LOC = "D9" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "ls_dir" 	                     			LOC = "D13" | SLEW = SLOW | DRIVE = 8;     #bank 0
 #NET  "sc_clkout"                             LOC = "T10" | SLEW = SLOW | DRIVE = 12;     #LED test for sc clock output
-#NET  "srstb"                  					LOC = "D11" | SLEW = SLOW | DRIVE = 8;     #bank 0
-#NET  "urstb"                   					LOC = "C12" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "srstb"                  					LOC = "D11" | SLEW = SLOW | DRIVE = 8;     #bank 0
+NET  "urstb"                   					LOC = "C13" | SLEW = SLOW | DRIVE = 8;     #bank 0
