@@ -31,8 +31,6 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
--- Recent changes - Added "init" state, used it to reset sample_counter,etc. (sample_counter is still off?)
--- Added "sample_ack" state
 
 entity usb is
 	generic(
@@ -363,7 +361,7 @@ begin
 					when X"2" =>
 						next_state <= idle;	-- stop cmd
 					when X"4" => 
-						next_state <= sc_check; -- new cmd, send byte
+						next_state <= sc_check; -- scan chain cmd, load config
 					when others => 
 						next_state <= idle;
 				end case;	
